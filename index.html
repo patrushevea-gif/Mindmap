@@ -481,13 +481,10 @@
         <div className="flex flex-col h-screen w-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
           
           {/* --- Верхняя панель --- */}
-          <div className="h-20 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-6 shrink-0 z-50 relative">
-            <div className="flex items-center space-x-4">
-              <img src="assets/logo.svg" alt="Rossilber Flow logo" className="w-14 h-14 object-contain shrink-0" />
-              <div>
-                <span className="font-bold text-xl tracking-tight text-blue-900 block">Rossilber Flow</span>
-                <span className="text-xs text-slate-500">{currentUser ? `${currentUser} · Карта ${currentMapIndex + 1}` : "Выберите пользователя и карту"}</span>
-              </div>
+          <div className="h-16 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-6 shrink-0 z-50 relative">
+            <div className="flex items-center space-x-3">
+              <img src="assets/logo.svg" alt="Rossilber Flow logo" className="w-10 h-10 object-contain" />
+              <span className="font-bold text-xl tracking-tight text-blue-900">Rossilber Flow</span>
             </div>
             
             <div className="flex items-center space-x-2">
