@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-label="Rossilber Flow logo">
+  <defs>
+    <marker id="arrow-red" markerWidth="16" markerHeight="16" refX="12" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#ef001a" />
+    </marker>
+    <marker id="arrow-orange" markerWidth="16" markerHeight="16" refX="12" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#f27300" />
+    </marker>
+  </defs>
+
+  <g fill="none" stroke-linecap="round">
+    <path d="M 382 416 A 210 210 0 1 1 143 85" stroke="#ef001a" stroke-width="42" marker-end="url(#arrow-red)"/>
+    <path d="M 131 109 A 210 210 0 0 1 426 364" stroke="#f27300" stroke-width="42" marker-end="url(#arrow-orange)"/>
+
+    <path d="M 352 360 A 150 150 0 1 1 167 137" stroke="#ef001a" stroke-width="34" marker-end="url(#arrow-red)"/>
+    <path d="M 157 147 A 150 150 0 0 1 391 330" stroke="#f27300" stroke-width="34" marker-end="url(#arrow-orange)"/>
+  </g>
+</svg>
