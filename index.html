@@ -38,7 +38,6 @@
     const IconTrash2 = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>;
     const IconMousePointer2 = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>;
     const IconDownload = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-    const IconShapes = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 22a6.5 6.5 0 1 1 0-13 6.5 6.5 0 0 1 0 13z"/><path d="M15.5 15h6v6h-6z"/><path d="m15 2 4 4-4 4-4-4z"/></svg>;
     const IconEdit3 = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
     const IconUndo = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>;
     const IconRedo = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>;
@@ -88,6 +87,8 @@
 
     const CANVAS_WIDTH = 3179;
     const CANVAS_HEIGHT = 4493;
+    const MAX_USER_MAPS = 5;
+    const LAST_SESSION_KEY = "rossilber-flow-last-session";
 
     function App() {
       const containerRef = useRef(null);
@@ -118,6 +119,11 @@
       const [showMinimap, setShowMinimap] = useState(true);
       const [scrollPos, setScrollPos] = useState({ left: 0, top: 0, w: 1000, h: 800 });
 
+      const [currentUser, setCurrentUser] = useState('');
+      const [currentMapIndex, setCurrentMapIndex] = useState(null);
+      const [userNameInput, setUserNameInput] = useState('');
+      const [showMapPicker, setShowMapPicker] = useState(true);
+
       // Центрирование при старте и настройка слушателя скролла
       useEffect(() => {
         if (containerRef.current) {
@@ -137,6 +143,74 @@
           });
         }
       };
+
+      const getUserStorageKey = (name) => `rossilber-flow-user-${name.trim().toLowerCase()}`;
+
+      const readUserMaps = (name) => {
+        if (!name) return Array.from({ length: MAX_USER_MAPS }, () => null);
+        try {
+          const raw = localStorage.getItem(getUserStorageKey(name));
+          const parsed = raw ? JSON.parse(raw) : {};
+          const maps = Array.isArray(parsed.maps) ? parsed.maps : [];
+          return Array.from({ length: MAX_USER_MAPS }, (_, i) => maps[i] || null);
+        } catch (e) {
+          console.error('Ошибка чтения карт пользователя', e);
+          return Array.from({ length: MAX_USER_MAPS }, () => null);
+        }
+      };
+
+      const writeUserMaps = (name, maps) => {
+        localStorage.setItem(getUserStorageKey(name), JSON.stringify({ maps }));
+      };
+
+      const loadMapForUser = (name, mapIndex) => {
+        const maps = readUserMaps(name);
+        const selected = maps[mapIndex];
+        const nextNodes = selected?.nodes || [];
+        const nextEdges = selected?.edges || [];
+
+        setCurrentUser(name);
+        setCurrentMapIndex(mapIndex);
+        setNodes(nextNodes);
+        setEdges(nextEdges);
+        setHistory([{ nodes: deepClone(nextNodes), edges: deepClone(nextEdges) }]);
+        setHistoryIndex(0);
+        setSelectedNodeIds([]);
+        setSelectedEdgeId(null);
+        setEditingNodeId(null);
+        setEditingEdgeId(null);
+        setShowMapPicker(false);
+
+        localStorage.setItem(LAST_SESSION_KEY, JSON.stringify({ name, mapIndex }));
+      };
+
+      const saveCurrentMap = () => {
+        if (!currentUser || currentMapIndex === null) return;
+        const maps = readUserMaps(currentUser);
+        maps[currentMapIndex] = {
+          nodes: deepClone(nodes),
+          edges: deepClone(edges),
+          updatedAt: new Date().toISOString()
+        };
+        writeUserMaps(currentUser, maps);
+        alert(`Карта ${currentMapIndex + 1} сохранена для ${currentUser}`);
+      };
+
+      const openMapPicker = () => {
+        setShowMapPicker(true);
+        setShowExportMenu(false);
+      };
+
+      useEffect(() => {
+        try {
+          const raw = localStorage.getItem(LAST_SESSION_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed?.name) setUserNameInput(parsed.name);
+        } catch (e) {
+          console.error('Ошибка чтения последней сессии', e);
+        }
+      }, []);
 
       // --- Логика Истории (Undo/Redo) ---
       const commitChange = (newNodes, newEdges) => {
@@ -320,7 +394,9 @@
       const exportJSON = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ nodes, edges }));
         const link = document.createElement('a');
-        link.download = 'rossilber-flow.json';
+        const userPart = currentUser ? `-${currentUser}` : '';
+        const mapPart = currentMapIndex !== null ? `-map-${currentMapIndex + 1}` : '';
+        link.download = `rossilber-flow${userPart}${mapPart}.json`;
         link.href = dataStr; link.click();
         setShowExportMenu(false);
       };
@@ -405,12 +481,9 @@
         <div className="flex flex-col h-screen w-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
           
           {/* --- Верхняя панель --- */}
-          <div className="h-16 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-6 shrink-0 z-50 relative">
-            <div className="flex items-center space-x-3 text-slate-900">
-              <div className="bg-slate-900 text-white p-1.5 rounded-lg shadow-sm">
-                <IconShapes className="w-5 h-5" />
-              </div>
-              <span className="font-bold text-xl tracking-tight">Rossilber Flow</span>
+          <div className="h-20 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-6 shrink-0 z-50 relative">
+            <div className="flex items-center">
+              <span className="font-bold text-xl tracking-tight text-blue-900">Rossilber Flow</span>
             </div>
             
             <div className="flex items-center space-x-2">
@@ -420,6 +493,14 @@
               <div className="w-px h-6 bg-slate-200 mx-2"></div>
 
               <button onClick={() => setShowMinimap(!showMinimap)} className={`p-2 rounded-lg transition-all ${showMinimap ? 'bg-blue-100 text-blue-600' : 'text-slate-600 hover:bg-slate-100'}`} title="Мини-карта"><IconMap className="w-4 h-4"/></button>
+
+              <button onClick={openMapPicker} className="flex items-center px-4 py-2 ml-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-lg transition-colors">
+                Карты
+              </button>
+
+              <button onClick={saveCurrentMap} disabled={!currentUser || currentMapIndex === null} className="flex items-center px-4 py-2 ml-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-700 text-sm font-medium rounded-lg transition-colors">
+                Сохранить
+              </button>
 
               <button onClick={() => { setNodes([]); setEdges([]); setSelectedNodeIds([]); setSelectedEdgeId(null); commitChange([], []); }} className="flex items-center px-4 py-2 ml-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-lg transition-colors">
                 Очистить
@@ -438,6 +519,47 @@
               </div>
             </div>
           </div>
+
+          {showMapPicker && (
+            <div className="absolute inset-0 bg-slate-900/50 z-[60] flex items-center justify-center p-4">
+              <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 p-6">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Добро пожаловать в Rossilber Flow</h2>
+                <p className="text-sm text-slate-600 mb-4">Введите имя и выберите одну из 5 персональных карт. Другой сотрудник с другим именем увидит только свои карты на этом устройстве.</p>
+                <input
+                  value={userNameInput}
+                  onChange={(e) => setUserNameInput(e.target.value)}
+                  placeholder="Например: Иван"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Array.from({ length: MAX_USER_MAPS }, (_, i) => {
+                    const activeName = userNameInput.trim();
+                    const maps = activeName ? readUserMaps(activeName) : [];
+                    const mapData = maps[i];
+                    return (
+                      <button
+                        key={i}
+                        disabled={!activeName}
+                        onClick={() => loadMapForUser(activeName, i)}
+                        className="text-left p-4 border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        <div className="font-semibold text-slate-800">Карта {i + 1}</div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          {mapData ? `Сохранено блоков: ${mapData.nodes?.length || 0}` : 'Пустая карта'}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!currentUser && <p className="text-xs text-slate-500 mt-4">Сначала выберите имя и карту, чтобы войти в рабочее пространство.</p>}
+                {currentUser && (
+                  <div className="mt-4 flex justify-end">
+                    <button onClick={() => setShowMapPicker(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 text-slate-700 hover:bg-slate-50">Закрыть</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* --- Левая Панель Свойств --- */}
           {(selectedNodeIds.length > 0 || selectedEdgeId) && (
