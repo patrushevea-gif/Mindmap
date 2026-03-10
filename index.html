@@ -25,6 +25,7 @@
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     .lasso-box { position: absolute; border: 2px dashed #3b82f6; background-color: rgba(59, 130, 246, 0.1); pointer-events: none; z-index: 100; }
+    .brand-title-only img { display: none !important; }
   </style>
 </head>
 <body>
@@ -481,13 +482,13 @@
         <div className="flex flex-col h-screen w-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
           
           {/* --- Верхняя панель --- */}
-          <header className="h-20 bg-white border-b border-slate-200 shadow-sm px-6 shrink-0 z-50 relative">
-            <div className="h-full flex items-center justify-between">
-              <div className="flex items-center">
-                <span className="font-bold text-xl tracking-tight text-blue-900">Rossilber Flow</span>
-              </div>
-
-              <div className="flex items-center space-x-2">
+          <div className="h-16 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between px-6 shrink-0 z-50 relative">
+            <div className="flex items-center space-x-3">
+              <img src="assets/logo.svg" alt="Rossilber Flow logo" className="w-10 h-10 object-contain" />
+              <span className="font-bold text-xl tracking-tight text-blue-900">Rossilber Flow</span>
+            </div>
+            
+            <div className="flex items-center space-x-2">
               <button onClick={undo} disabled={historyIndex === 0} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg disabled:opacity-30 transition-all" title="Отменить (Ctrl+Z)"><IconUndo className="w-4 h-4"/></button>
               <button onClick={redo} disabled={historyIndex === history.length - 1} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg disabled:opacity-30 transition-all mr-2" title="Повторить (Ctrl+Y)"><IconRedo className="w-4 h-4"/></button>
               
@@ -521,6 +522,47 @@
               </div>
             </div>
           </header>
+
+          {showMapPicker && (
+            <div className="absolute inset-0 bg-slate-900/50 z-[60] flex items-center justify-center p-4">
+              <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 p-6">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Добро пожаловать в Rossilber Flow</h2>
+                <p className="text-sm text-slate-600 mb-4">Введите имя и выберите одну из 5 персональных карт. Другой сотрудник с другим именем увидит только свои карты на этом устройстве.</p>
+                <input
+                  value={userNameInput}
+                  onChange={(e) => setUserNameInput(e.target.value)}
+                  placeholder="Например: Иван"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Array.from({ length: MAX_USER_MAPS }, (_, i) => {
+                    const activeName = userNameInput.trim();
+                    const maps = activeName ? readUserMaps(activeName) : [];
+                    const mapData = maps[i];
+                    return (
+                      <button
+                        key={i}
+                        disabled={!activeName}
+                        onClick={() => loadMapForUser(activeName, i)}
+                        className="text-left p-4 border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        <div className="font-semibold text-slate-800">Карта {i + 1}</div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          {mapData ? `Сохранено блоков: ${mapData.nodes?.length || 0}` : 'Пустая карта'}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!currentUser && <p className="text-xs text-slate-500 mt-4">Сначала выберите имя и карту, чтобы войти в рабочее пространство.</p>}
+                {currentUser && (
+                  <div className="mt-4 flex justify-end">
+                    <button onClick={() => setShowMapPicker(false)} className="px-4 py-2 rounded-lg text-sm font-medium border border-slate-300 text-slate-700 hover:bg-slate-50">Закрыть</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {showMapPicker && (
             <div className="absolute inset-0 bg-slate-900/50 z-[60] flex items-center justify-center p-4">
